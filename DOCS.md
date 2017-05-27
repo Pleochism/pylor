@@ -1,17 +1,17 @@
-Rester
+Pylor
 ======
 
-Rester is primarily a server-side API helper that wraps
+Pylor is primarily a server-side API helper that wraps
 [ExpressJS](www.expressjs.com) to add a simpler endpoint definition
-system, endpoint dogfooding and roles & permissions. Rester is used for
+system, endpoint dogfooding and roles & permissions. Pylor is used for
 all API operations in an Acacia application.
 
-Rester can also be used on the client-side to perform permission checks.
+Pylor can also be used on the client-side to perform permission checks.
 
-Initialising Rester
+Initialising Pylor
 -------------------
 
-Rester must be initialised before it can be used. It only needs to be
+Pylor must be initialised before it can be used. It only needs to be
 initialised once, so you'll typically do this during app startup.
 
 ```javascript
@@ -45,13 +45,13 @@ server-side use:
     /config folder.
 -   `grants` - a map of all grants. In a standard Acacia application,
     this is your `grants.json` file from the /config folder.
--   `rolePermissions` - (client-side only) the client Rester requires a
+-   `rolePermissions` - (client-side only) the client Pylor requires a
     list of all API routes to be able to map permissions to routes, but
     it has no innate knowledge of these routes, unlike the server. This
     parameter represents a collapsed representation of those routes,
-    extracted from the server Rester object with the
+    extracted from the server Pylor object with the
     `getRolePermissions()` call (once all API definitions have been
-    processed); a client-side Rester object will then rehydrate these
+    processed); a client-side Pylor object will then rehydrate these
     routes and substitute them for the actual API definitions.
 
 **Other options**
@@ -60,10 +60,10 @@ server-side use:
     bubble up. Must expose a method called `error()`.
     Defaults to the console object if not specified.
 
-Rester interface
+Pylor interface
 ----------------
 
-The following methods are exported by Rester.
+The following methods are exported by Pylor.
 
 ### `init(options)`
 
@@ -78,16 +78,16 @@ routes, suitable for dehydration and sending to a client instance.
 
 Set up some new API routes. See the next section for details.
 
-Beyond these methods, Rester also proxies most of the Pylor methods, to
-make it easier to reference them (eg. `Rester.foo` instead of
-`Rester.Pylor.foo`). Refer to the Pylor\_ section for details on these:
+Beyond these methods, Pylor also proxies most of the Pylor methods, to
+make it easier to reference them (eg. `Pylor.foo` instead of
+`Pylor.Pylor.foo`). Refer to the Pylor\_ section for details on these:
 
 As well as the following Middleware\_:
 
 Setting up endpoints
 --------------------
 
-Once Rester is initialised, you can use it to add API endpoints by
+Once Pylor is initialised, you can use it to add API endpoints by
 calling the `activate(spec[, options])` method.
 
 `options` is an optional object that can only have one option: `api`. If
@@ -135,12 +135,12 @@ single spec if required.
 
 ### Verbs
 
-As covered in the architecture section, Rester supports four main verbs:
+As covered in the architecture section, Pylor supports four main verbs:
 GET, POST, PUT, and DELETE. These verbs are expressed in specs in their
 lowercase form. DELETE can also be abbreviated to "del".
 
 There are also two special verb forms: "get+" and "put-". To understand
-these, let us consider how Rester maps verbs to Acacia CRUD operations.
+these, let us consider how Pylor maps verbs to Acacia CRUD operations.
 
 #### `get` - Bulk Fetch
 
@@ -235,8 +235,8 @@ Leaf nodes can also be an array. If so, the final element of the array
 is expected to be an endpoint handler, and all other elements are
 expected to be Express middleware functions.
 
-Rester/Pylor defines some middlewares that can be used out of the box
-(all these are accessible on a Rester instance). Some of these are
+Pylor/Pylor defines some middlewares that can be used out of the box
+(all these are accessible on a Pylor instance). Some of these are
 higher order functions that return the middleware, instead of being the
 middleware innately:
 
@@ -275,7 +275,7 @@ take preference.
 
 A Pylor middleware that removes all other currently defined Pylor
 permissions for the targeted endpoints, including those implicitly
-defined by Rester. This makes the endpoint accessible to anyone, without
+defined by Pylor. This makes the endpoint accessible to anyone, without
 authentication.
 
 ------------------------------------------------------------------------
@@ -287,20 +287,20 @@ as required.
 
 > **note**
 >
-> The Pylor `any` middleware is automatically set up by Rester for each
+> The Pylor `any` middleware is automatically set up by Pylor for each
 > API call. It is applied before the user-defined middlewares, allow you
 > to override those permissions if needed, and will merge with other
 > `any` calls as normal. See the next section for more information.
 
 ### Implicit endpoint permissions
 
-Rester operates on the principle of "deny by default". All endpoints are
+Pylor operates on the principle of "deny by default". All endpoints are
 given automatic permissions based on their paths; the presence of these
 permissions means that a brand-new endpoint cannot be accessed until
 you've assigned the relevant permissions to a user's role.
 
 The following rules are used to construct the permission strings for an
-endpoint, and are executed on the full path as generated by Rester. For
+endpoint, and are executed on the full path as generated by Pylor. For
 more detail on how permissions work, see Permissions\_.
 
 -   The endpoint path is split by `/`. Path elements will be joined by a
@@ -319,7 +319,7 @@ more detail on how permissions work, see Permissions\_.
     > -   `PUT /acacia/one/two => acacia.one.two.put`
 
 -   If the path contains any parameters (including UIDs added
-    automatically by Rester for GET, PUT and DELETE endpoints), a
+    automatically by Pylor for GET, PUT and DELETE endpoints), a
     permission is generated which removes the leading colons from
     the wildcards.
 
@@ -451,10 +451,10 @@ return rester.response([])
 API dogfooding
 --------------
 
-Rester allows you to consume API endpoints as internal methods on the
+Pylor allows you to consume API endpoints as internal methods on the
 server side. Endpoint handlers are exposed in the following manner:
 
--   A Rester instance exposes a property at `rester.api.latest`. This
+-   A Pylor instance exposes a property at `rester.api.latest`. This
     corresponds to the latest version of the API; you can also access
     the API calls via their specific versions, eg. `rester.api["1.0"]`.
     Non-API calls are exposed at `rester.acacia`.
@@ -487,11 +487,11 @@ callback-based equivalents).
 Pylor
 -----
 
-Pylor expresses the access control operations used by Rester.
+Pylor expresses the access control operations used by Pylor.
 
 > **note**
 >
-> Pylor can be used by itself, without Rester, but is not currently used
+> Pylor can be used by itself, without Pylor, but is not currently used
 > in this way.
 
 Pylor achieves its goals using three concepts: permissions, roles, and
@@ -503,7 +503,7 @@ A permission is an string which acts as a token representing some
 arbitrary level of access to some arbitrary operation. The only
 requirement is that the string be unique amongst all defined
 permissions. Permissions have no intrinsic meaning beyond that assigned
-by the system using them (apart from those auto-generated for Rester
+by the system using them (apart from those auto-generated for Pylor
 endpoints, which do intrinsically control access to those endpoints).
 
 By convention, permission strings are hierarchical, separated by
@@ -513,7 +513,7 @@ periods.
 -   `group.item.specificity`
 -   `whatever.you.want.as.many.levels.as.desired`
 
-Permissions are exposed on a Rester instance via the `rester.p`
+Permissions are exposed on a Pylor instance via the `rester.p`
 property. Permissions are also accessible inside Nunjucks templates via
 the `permissions` global.
 
@@ -721,14 +721,14 @@ grant file looks like this:
 ```
 
 Each grant has a "name" property, which is the human name for the grant,
-and a "grant" property, which is populated by Rester at runtime with the
+and a "grant" property, which is populated by Pylor at runtime with the
 internal identifying value for that grant. Note that there is no
 indication of what the dynamic list of values for a specific grant are;
 this is decided externally, by the consuming application.
 
-Grants are also exposed on a Rester instance via the rester.g property.
+Grants are also exposed on a Pylor instance via the rester.g property.
 
-Also at runtime, Rester generates some permissions corresponding to
+Also at runtime, Pylor generates some permissions corresponding to
 grants. It will do this automatically based on the grants provided to
 the instance constructor. Each grant gets two permissions associated
 with it (and these are merged into the existing permission set, thus
