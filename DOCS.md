@@ -15,8 +15,8 @@ Pylor must be initialised before it can be used. It only needs to be
 initialised once, so you'll typically do this during app startup.
 
 ```javascript
-var rester = require("rester");
-rester.init(options);
+var pylor = require("pylor");
+pylor.init(options);
 ```
 
 The available options are listed below. API options are only needed for
@@ -34,7 +34,7 @@ server-side use:
 -   `version` - the version that API routes are attached to, under the
     `apiRoot`. Defaults to "1.0".
 -   `endpoint` - the string that non-API routes are mounted under.
-    Defaults to "acacia".
+    Defaults to "internal".
 
 **Permission options**
 
@@ -66,21 +66,20 @@ Pylor interface
 The following methods are exported by Pylor.
 
 ### `init(options)`
+-------------------
 
 Described above.
 
 `getRolePermissions()`
 ----------------------
 Returns a map of the API
-routes, suitable for dehydration and sending to a client instance.
+routes, suitable for dehydration and sending to a client-side instance.
 
 ### `activate(spec, options)`
+-------------------
 
 Set up some new API routes. See the next section for details.
 
-Beyond these methods, Pylor also proxies most of the Pylor methods, to
-make it easier to reference them (eg. `Pylor.foo` instead of
-`Pylor.Pylor.foo`). Refer to the Pylor\_ section for details on these:
 
 As well as the following Middleware\_:
 
@@ -93,25 +92,25 @@ calling the `activate(spec[, options])` method.
 `options` is an optional object that can only have one option: `api`. If
 this is set to "false", the specified routes will be mounted under the
 path provided as `endpoint` in the initialisation call (defaults to
-`acacia`), instead of under the `apiRoot` value (defaults to `api`).
+`internal`), instead of under the `apiRoot` value (defaults to `api`).
 
 A `spec` is an object that expresses the API structure to create, as a
 nested hierarchy. Consider the following example, which sets up a
 theoretical API for manipulating virtual machines:
 
-``` {.sourceCode .javascript}
+```javascript
 var spec = {
   vm: {
-    _middleware: [rester.sslOn],
+    _middleware: [pylor.sslOn],
 
     get: exports.getVMs,
     "get+": exports.getSingleVM,
     post: exports.addVM,
-    put: [rester.noBasic, exports.updateVM],
+    put: [pylor.noBasic, exports.updateVM],
     del: exports.deleteVM,
 
     ":vm": {
-      _middleware: [rester.sslOff],
+      _middleware: [pylor.sslOff],
 
       get: exports.getSpecialVM,
       paused: [support.doSomething, exports.getPausedVM],
@@ -128,21 +127,22 @@ There's a lot going on here, so let's cover some basics first.
 
 Each level of a spec corresponds to an element of the final endpoint,
 prefixed by the `apiRoot` and `version` properties. Leaf nodes must be
-an endpoint handler (see Endpoint handlers\_). Non-leaf nodes that need
+an endpoint handler (see Endpoint handlers_). Non-leaf nodes that need
 to represent a parameter, should be prefixed with a colon (eg. `:vm`).
 The tree can be nested infinitely deep. Multiple trees can exist in a
 single spec if required.
 
 ### Verbs
 
-As covered in the architecture section, Pylor supports four main verbs:
-GET, POST, PUT, and DELETE. These verbs are expressed in specs in their
+Pylor supports five verbs:
+GET, POST, PUT, PATCH and DELETE. These verbs are expressed in specs in their
 lowercase form. DELETE can also be abbreviated to "del".
 
 There are also two special verb forms: "get+" and "put-". To understand
-these, let us consider how Pylor maps verbs to Acacia CRUD operations.
+these, let us consider how Pylor maps verbs to CRUD operations.
 
 #### `get` - Bulk Fetch
+-------------------
 
 "get" is a bulk fetch. In the VM example, line 5 would map to a call of
 the form `GET /api/1.0/vm`. The assumption with a bulk call is that you
@@ -157,7 +157,8 @@ single ID is passed to the fetch, or if there is only a single element
 in the response.
 
 `get+` - Bulk & Individual Fetch
-\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~ "get+" is a
+-------------------
+"get+" is a
 contrived verb that indicates a hybrid individual/bulk fetch endpoint.
 The plus just differentiates it from regular GET. For this verb, two
 endpoints are generated; in the earlier example, line 6 would map to
@@ -168,36 +169,14 @@ handler; thus, some additional processing (eg. checking `opts.multiID`)
 may be needed if you need to determine which specific endpoint was
 invoked.
 
-> **note**
->
-> You are doubtless wondering why the GET calls are split in this
-> manner. Why not simply always emit both forms of endpoint whenever a
-> GET is defined?
->
-> The answer is that the hierarchical spec definition has a weakness:
-> consider lines 6 and 14 in the example. Both will resolve to
-> `GET /api/1.0/vm/:param` (parameter names are irrelevant to Express),
-> and therefore whichever ones appears first, will be shadowed by the
-> newer one and can never be called. This can never be resolved
-> automatically, and so it is up to a human to structure the calls in a
-> way that will avoid this. Two varieties of GET make this easier.
->
-> Practically speaking, in the vast majority of cases, a bulk GET at the
-> top level is the standard form, and so the issue of a clash does not
-> arise. But for the odd cases that an individual GET is used, the user
-> must take care to structure any child nodes to avoid a clash. This can
-> be done most easily by nesting the sub-node inside a new named node;
-> for example, in the above clash, it could for instance be resolved by
-> wrapping the `get+` or `get` inside a node named something else. This
-> will extend the path to `GET /api/1.0/vm/<something-else>/:param`,
-> which is distinct and therefore will not be shadowed.
-
 #### `post` - Add
+-------------------
 
 "post" is an add operation. It takes no parameters. For example, line 7
 of the main example would map to `POST /api/1.0/vm`.
 
 #### `put` - Update
+-------------------
 
 "put" is an update operation. It is automatically decorated with a
 single parameter, typically corresponding to the unique ID of the item
@@ -205,6 +184,7 @@ to be updated (although it can of course be anything). For example, line
 8 of the main example would map to `PUT /api/1.0/vm/:uid`.
 
 #### `put-` - Unparameterised update
+-------------------
 
 "put-" is an update that is *not* automatically decorated with a
 parameter. It is thus functionally identical to a POST. It only exists
@@ -212,7 +192,8 @@ to cater for some legacy calls which used PUT to do operations that
 should have been accomplished with POST. In the main example, line 18
 would map to `PUT /api/1.0/vm/:vm/boot`.
 
-`del` or `delete` - Deletion \~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~
+`del` or `delete` - Deletion
+-------------------
 "del" is a deletion. It is automatically decorated with a single
 parameter, typically corresponding to the unique ID of the item to be
 deleted. In the main example, line 9 would map to
@@ -228,7 +209,7 @@ some middleware that will apply to the entire spec. Line 12 disables
 that middleware for a sub-object by applying another that will undo its
 effect.
 
-"\_middleware" can be defined anywhere in a given level, but typically
+"_middleware" can be defined anywhere in a given level, but typically
 is defined at the start.
 
 Leaf nodes can also be an array. If so, the final element of the array
@@ -241,20 +222,24 @@ higher order functions that return the middleware, instead of being the
 middleware innately:
 
 #### `sslOn`
+-------------------
 
 Require SSL for targeted endpoints.
 
 #### `sslOff`
+-------------------
 
 Don't require SSL for targeted endpoints.
 
 #### `noBasic`
+-------------------
 
 Disable HTTP Basic auth for an endpoint. NOTE: there is no way to
 reverse the effect of this middleware.
 
 `any(permissions[, override])`
-\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~ A Pylor
+-------------------
+A Pylor
 middleware that will require any of the specified permissions in order
 to access the targeted endpoints. If `override` is true, any existing
 permissions will be discarded first. Multiple `any` calls will merge
@@ -263,7 +248,8 @@ permissions in the middleware chain for this endpoint, the `any` call
 will do nothing.
 
 `only(permissions[, override])`
-\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~ A Pylor
+-------------------
+A Pylor
 middleware that will require all of the specified permissions in order
 to access the targeted endpoints. If `override` is true, any existing
 permissions will be discarded first. Multiple `only` calls will merge
@@ -272,6 +258,7 @@ in the middleware chain for this endpoint, `only` will discard them and
 take preference.
 
 #### `all`
+-------------------
 
 A Pylor middleware that removes all other currently defined Pylor
 permissions for the targeted endpoints, including those implicitly
@@ -301,22 +288,22 @@ you've assigned the relevant permissions to a user's role.
 
 The following rules are used to construct the permission strings for an
 endpoint, and are executed on the full path as generated by Pylor. For
-more detail on how permissions work, see Permissions\_.
+more detail on how permissions work, see [Permissions](#permissions).
 
 -   The endpoint path is split by `/`. Path elements will be joined by a
     period when constructing the permission string. If the endpoint is
     an API path, the second element (corresponding to the API version)
     is discarded. `api` is the root of API permissions. If the endpoint
-    is a non-API path, the leading `acacia` is maintained, making this
+    is a non-API path, the leading `internal` is maintained, making this
     the root of non-API permissions.
 
     > -   `/api/1.0/foo/bar => api.foo.bar`
-    > -   `/acacia/foo/bar => acacia.foo.bar`
+    > -   `/internal/foo/bar => internal.foo.bar`
 
 -   Permissions are suffixed with the appropriate verb.
 
     > -   `GET /api/1.0/foo/bar => api.foo.bar.get`
-    > -   `PUT /acacia/one/two => acacia.one.two.put`
+    > -   `PUT /internal/one/two => internal.one.two.put`
 
 -   If the path contains any parameters (including UIDs added
     automatically by Pylor for GET, PUT and DELETE endpoints), a
@@ -334,7 +321,7 @@ more detail on how permissions work, see Permissions\_.
 
     > -   `GET /api/1.0/foo/:bar => api.foo._.get`
     > -   `POST /api/1.0/foo/:uid => api.foo.post`
-    > -   `GET /acacia/herp/:derp/:uid => acacia.herp._.get`
+    > -   `GET /internal/herp/:derp/:uid => internal.herp._.get`
 
 -   All permissions for an endpoint are combined and used in a Pylor
     `any` check. Thus you may use any of the generated permissions to
@@ -374,8 +361,8 @@ The `opts` object can have the following properties:
 
 If the handler is invoked in callback mode, and the error argument is
 falsy, it expects an object as the second parameter, which must either
-be constructed fluently from `rester.response([response])` or
-`rester.end()`, or be a plain object with the appropriate properties.
+be constructed fluently from `pylor.response([response])` or
+`pylor.end()`, or be a plain object with the appropriate properties.
 
 > **note**
 >
@@ -441,7 +428,7 @@ return {
 ```
 
 ``` {.sourceCode .javascript}
-return rester.response([])
+return pylor.response([])
     .addHeaders({ "X-Foo": 1 })
     .status(403)
     .expectResponse()
@@ -454,16 +441,16 @@ API dogfooding
 Pylor allows you to consume API endpoints as internal methods on the
 server side. Endpoint handlers are exposed in the following manner:
 
--   A Pylor instance exposes a property at `rester.api.latest`. This
+-   A Pylor instance exposes a property at `pylor.api.latest`. This
     corresponds to the latest version of the API; you can also access
-    the API calls via their specific versions, eg. `rester.api["1.0"]`.
-    Non-API calls are exposed at `rester.acacia`.
+    the API calls via their specific versions, eg. `pylor.api["1.0"]`.
+    Non-API calls are exposed at `pylor.internal`.
 -   Calls follow the same rules as for permission generation, except
     that the "api" prefix is omitted for API endpoints. Parameters are
     replaced with themselves *sans* colons, and the verb is appended to
     the end.
 
-    > -   `GET /api/1.0/foo/:bar/:uid => rester.api.latest.foo.bar.get`
+    > -   `GET /api/1.0/foo/:bar/:uid => pylor.api.latest.foo.bar.get`
 
 The function called is identical to the one called for a proper HTTP
 call, but there is obviously no real request to serve as the caller
@@ -484,17 +471,10 @@ Dogfooded calls automatically unwrap responses, thus they return `x` if
 the function uses either `return { result: x }` or `return x` (or the
 callback-based equivalents).
 
-Pylor
------
+Access Control
+----------------
 
-Pylor expresses the access control operations used by Pylor.
-
-> **note**
->
-> Pylor can be used by itself, without Pylor, but is not currently used
-> in this way.
-
-Pylor achieves its goals using three concepts: permissions, roles, and
+Pylor achieves its access control using three concepts: permissions, roles, and
 grants.
 
 ### Permissions
@@ -513,7 +493,7 @@ periods.
 -   `group.item.specificity`
 -   `whatever.you.want.as.many.levels.as.desired`
 
-Permissions are exposed on a Pylor instance via the `rester.p`
+Permissions are exposed on a Pylor instance via the `pylor.p`
 property. Permissions are also accessible inside Nunjucks templates via
 the `permissions` global.
 
@@ -542,7 +522,7 @@ There are two special values that can be used in permission strings:
 `permissions.json` file in the /config folder. A permission structure
 looks like this:
 
-``` {.sourceCode .javascript}
+```javascript
 {
     "impersonate": "",
     "users": {
@@ -563,7 +543,7 @@ At runtime, Pylor will expand the permissions by simply appending each
 level of the tree, separated by periods. This results in a final object
 of this form:
 
-``` {.sourceCode .javascript}
+```javascript
 {
     "impersonate": "impersonate",
     "users": {
@@ -588,8 +568,8 @@ defined in permissions.json, permission checks for that value will fail.
 
 The following methods are exposed for working with permissions:
 
-`rester.registerAccessExtension(permission, lookup)`
-\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~
+`pylor.registerAccessExtension(permission, lookup)`
+-------------------
 This method registers a new access extension.
 
 Access extensions allow you to dynamically modify permission checks.
@@ -607,14 +587,14 @@ roles, so roles can be designed to be quite specific, and combined to
 achieve the desired effect. Roles are defined in `roles.json` in the
 /config folder. A sample roles file looks as such:
 
-``` {.sourceCode .javascript}
+```javascript
 {
     "*": {
         "name": "Default Role",
         "permissions": [
             "api.foo.bar",
 
-            "acacia.bar",
+            "internal.bar",
 
             "!custom.whatever"
         ]
@@ -674,7 +654,8 @@ is however specific to permission strings inside roles:
 
 The following methods are exposed for working with roles:
 
-#### `rester.hasAccess(permissionString, userData[, noExtensions])`
+#### `pylor.hasAccess(permissionString, userData[, noExtensions])`
+-------------------
 
 This method determines whether or not a user has access to one or more
 permissions.
@@ -707,7 +688,7 @@ the dynamic values; the grants system takes care of that.
 Grants are defined in `grants.json` in the /config folder. An example
 grant file looks like this:
 
-``` {.sourceCode .javascript}
+```javascript
 {
     "hods": {
         "name": "Departments",
@@ -726,13 +707,13 @@ internal identifying value for that grant. Note that there is no
 indication of what the dynamic list of values for a specific grant are;
 this is decided externally, by the consuming application.
 
-Grants are also exposed on a Pylor instance via the rester.g property.
+Grants are also exposed on a Pylor instance via the pylor.g property.
 
 Also at runtime, Pylor generates some permissions corresponding to
 grants. It will do this automatically based on the grants provided to
 the instance constructor. Each grant gets two permissions associated
 with it (and these are merged into the existing permission set, thus
-making them available on `rester.p` like all other permissions): ::
+making them available on `pylor.p` like all other permissions): ::
 grants.main.grant\_name grants.all.grant\_name
 
 The permissions under `grants.all` are intended to give full access to
@@ -754,8 +735,8 @@ for in database functions to detect "full access" permissions.
 
 The following methods are available for doing grant checks:
 
-`rester.matchGrantValues(grantName, userData, values)`
-\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~
+`pylor.matchGrantValues(grantName, userData, values)`
+-------------------
 This method checks if a user's grants allow access to one or more values
 for a specified grant. This method knows how to check for `grants.all`
 permissions.
@@ -770,8 +751,8 @@ the user's roles), and a `grants` property if applicable.
 user's grants. If it is an array, the user only needs to be able to
 match one of the values for the call to succeed.
 
-`rester.hasGrantAccess(grantName, userData)`
-\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~
+`pylor.hasGrantAccess(grantName, userData)`
+-------------------
 This method checks if a user is allocated the specified grant. This does
 not say anything about whether or not the user has values for the grant.
 This can be used as a conditional check before executing expensive
@@ -783,8 +764,8 @@ typical form.
 `userData` is a user object containing a `roles` property (an array of
 the user's roles).
 
-`rester.getGrantValues(grantName, userData[, noExtensions])`
-\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~\~
+`pylor.getGrantValues(grantName, userData[, noExtensions])`
+-------------------
 This method returns an array of the values that the user is assigned to
 for a specific grant. If the user is not permitted to access the grant,
 it will be an empty array. If the user has full access via a
@@ -798,7 +779,7 @@ the user's roles), and a `grants` property if applicable.
 If `noExtensions` is set, extension methods will not be used when
 calculating grant values.
 
-#### `rester.registerGrantExtension(grantName, lookup)`
+#### `pylor.registerGrantExtension(grantName, lookup)`
 
 This method registers a new grant extension.
 
