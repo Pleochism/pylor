@@ -542,7 +542,7 @@ defined in permissions.json, permission checks for that value will fail.
 The following methods are exposed for working with permissions:
 
 #### `pylor.registerAccessExtension(permission, lookup)`
--------------------
+
 This method registers a new access extension.
 
 Access extensions allow you to dynamically modify permission checks.
@@ -626,7 +626,6 @@ is however specific to permission strings inside roles:
 The following methods are exposed for working with roles:
 
 #### `pylor.hasAccess(permissionString, userData[, noExtensions])`
--------------------
 
 This method determines whether or not a user has access to one or more
 permissions.
@@ -709,7 +708,7 @@ for in database functions to detect "full access" permissions.
 The following methods are available for doing grant checks:
 
 #### `pylor.matchGrantValues(grantName, userData, values)`
--------------------
+
 This method checks if a user's grants allow access to one or more values
 for a specified grant. This method knows how to check for `grants.all`
 permissions.
@@ -725,7 +724,7 @@ user's grants. If it is an array, the user only needs to be able to
 match one of the values for the call to succeed.
 
 #### `pylor.hasGrantAccess(grantName, userData)`
--------------------
+
 This method checks if a user is allocated the specified grant. This does
 not say anything about whether or not the user has values for the grant.
 This can be used as a conditional check before executing expensive
@@ -738,7 +737,7 @@ typical form.
 the user's roles).
 
 #### `pylor.getGrantValues(grantName, userData[, noExtensions])`
--------------------
+
 This method returns an array of the values that the user is assigned to
 for a specific grant. If the user is not permitted to access the grant,
 it will be an empty array. If the user has full access via a
@@ -753,7 +752,6 @@ If `noExtensions` is set, extension methods will not be used when
 calculating grant values.
 
 #### `pylor.registerGrantExtension(grantName, lookup)`
--------------------
 
 This method registers a new grant extension.
 
