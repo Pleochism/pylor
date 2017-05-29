@@ -552,6 +552,8 @@ the `lookup` function will be invoked synchronously and given the
 boolean which will be OR'd with the main response, thus allowing you to
 perform custom logic to determine if a user should have access.
 
+----------------------------------------------------------------------------
+
 ### Roles
 
 Permissions are combined together into roles. A role encapsulate a
@@ -610,13 +612,13 @@ is however specific to permission strings inside roles:
 
 - `negation`: permissions can be negated within roles. This allows you to revoke access for a permission that might be granted by another role, ensuring that the user does NOT have a certain permission. Negated permissions have a priority hierarchy, which works as such:
 
-    >   Standard negated permission (eg. `!foo.bar`) have higher
+    - Standard negated permission (eg. `!foo.bar`) have higher
             priority than regular permissions, but lower priority than
             wildcard permission. So in that example, a permission of
             `foo.bar` would be negated, but a permission of `foo.*`
             would override it, and the role would thus match on
             `foo.bar`.
-    >   Negated wildcard permissions (eg. `!foo.*`) have higher
+    - Negated wildcard permissions (eg. `!foo.*`) have higher
             priority than all other permissions that are matched by that
             permission; for example, this would negate both `foo.moo`
             and `foo.bar`.
