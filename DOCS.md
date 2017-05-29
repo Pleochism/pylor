@@ -605,7 +605,7 @@ permissions will always be added to users when doing a permission check.
 
 There are three special values that can be used in permissions within
 roles: patterns, wildcards, and negation. Patterns and wildcards are
-identical to the way they are used in standalone permissions\_. Negation
+identical to the way they are used in [standalone permissions](#permissions). Negation
 is however specific to permission strings inside roles:
 
 - `negation`: permissions can be negated within roles. This allows you to revoke access for a permission that might be granted by another role, ensuring that the user does NOT have a certain permission. Negated permissions have a priority hierarchy, which works as such:
@@ -684,8 +684,10 @@ Also at runtime, Pylor generates some permissions corresponding to
 grants. It will do this automatically based on the grants provided to
 the instance constructor. Each grant gets two permissions associated
 with it (and these are merged into the existing permission set, thus
-making them available on `pylor.p` like all other permissions): ::
-grants.main.grant\_name grants.all.grant\_name
+making them available on `pylor.p` like all other permissions):
+
+`grants.main.grant_name`
+`grants.all.grant__name`
 
 The permissions under `grants.all` are intended to give full access to
 that grant. So if this was a grant that gave access to specific
