@@ -65,17 +65,17 @@ Pylor interface
 
 The following methods are exported by Pylor.
 
-### `init(options)`
--------------------
+#### `init(options)`
+
 Described above.
 
-### `getRolePermissions()`
-----------------------
+#### `getRolePermissions()`
+
 Returns a map of the API
 routes, suitable for dehydration and sending to a client-side instance.
 
-### `activate(spec, options)`
--------------------
+#### `activate(spec, options)`
+
 Set up some new API routes. See the next section for details.
 
 
@@ -138,7 +138,6 @@ There are also two special verb forms: "get+" and "put-". To understand
 these, let us consider how Pylor maps verbs to CRUD operations.
 
 #### `get` - Bulk Fetch
--------------------
 
 "get" is a bulk fetch. In the VM example, line 5 would map to a call of
 the form `GET /api/1.0/vm`. The assumption with a bulk call is that you
@@ -153,7 +152,7 @@ single ID is passed to the fetch, or if there is only a single element
 in the response.
 
 #### `get+` - Bulk & Individual Fetch
--------------------
+
 "get+" is a
 contrived verb that indicates a hybrid individual/bulk fetch endpoint.
 The plus just differentiates it from regular GET. For this verb, two
@@ -166,13 +165,11 @@ may be needed if you need to determine which specific endpoint was
 invoked.
 
 #### `post` - Add
--------------------
 
 "post" is an add operation. It takes no parameters. For example, line 7
 of the main example would map to `POST /api/1.0/vm`.
 
 #### `put` - Update
--------------------
 
 "put" is an update operation. It is automatically decorated with a
 single parameter, typically corresponding to the unique ID of the item
@@ -180,7 +177,6 @@ to be updated (although it can of course be anything). For example, line
 8 of the main example would map to `PUT /api/1.0/vm/:uid`.
 
 #### `put-` - Unparameterised update
--------------------
 
 "put-" is an update that is *not* automatically decorated with a
 parameter. It is thus functionally identical to a POST. It only exists
@@ -189,7 +185,7 @@ should have been accomplished with POST. In the main example, line 18
 would map to `PUT /api/1.0/vm/:vm/boot`.
 
 #### `del` or `delete` - Deletion
--------------------
+
 "del" is a deletion. It is automatically decorated with a single
 parameter, typically corresponding to the unique ID of the item to be
 deleted. In the main example, line 9 would map to
@@ -218,22 +214,21 @@ higher order functions that return the middleware, instead of being the
 middleware innately.
 
 #### `sslOn`
--------------------
+
 Require SSL for targeted endpoints.
 
 #### `sslOff`
--------------------
+
 Don't require SSL for targeted endpoints.
 
 #### `noBasic`
--------------------
+
 Disable HTTP Basic auth for an endpoint. NOTE: there is no way to
 reverse the effect of this middleware.
 
 #### `any(permissions[, override])`
--------------------
-A Pylor
-middleware that will require any of the specified permissions in order
+
+A middleware that will require any of the specified permissions in order
 to access the targeted endpoints. If `override` is true, any existing
 permissions will be discarded first. Multiple `any` calls will merge
 their permissions. If an `only` call has already set up some exclusive
@@ -241,9 +236,8 @@ permissions in the middleware chain for this endpoint, the `any` call
 will do nothing.
 
 #### `only(permissions[, override])`
--------------------
-A Pylor
-middleware that will require all of the specified permissions in order
+
+A middleware that will require all of the specified permissions in order
 to access the targeted endpoints. If `override` is true, any existing
 permissions will be discarded first. Multiple `only` calls will merge
 their permissions. If an `any` call has already set up some permissions
@@ -251,9 +245,8 @@ in the middleware chain for this endpoint, `only` will discard them and
 take preference.
 
 #### `all`
--------------------
 
-A Pylor middleware that removes all other currently defined Pylor
+A middleware that removes all other currently defined Pylor
 permissions for the targeted endpoints, including those implicitly
 defined by Pylor. This makes the endpoint accessible to anyone, without
 authentication.
@@ -290,21 +283,21 @@ more detail on how permissions work, see [Permissions](#permissions).
     is a non-API path, the leading `internal` is maintained, making this
     the root of non-API permissions.
 
-    > -   `/api/1.0/foo/bar => api.foo.bar`
-    > -   `/internal/foo/bar => internal.foo.bar`
+    - `/api/1.0/foo/bar => api.foo.bar`
+    - `/internal/foo/bar => internal.foo.bar`
 
 -   Permissions are suffixed with the appropriate verb.
 
-    > -   `GET /api/1.0/foo/bar => api.foo.bar.get`
-    > -   `PUT /internal/one/two => internal.one.two.put`
+    - `GET /api/1.0/foo/bar => api.foo.bar.get`
+    - `PUT /internal/one/two => internal.one.two.put`
 
 -   If the path contains any parameters (including UIDs added
     automatically by Pylor for GET, PUT and DELETE endpoints), a
     permission is generated which removes the leading colons from
     the wildcards.
 
-    > -   `POST /api/1.0/foo/:bar => api.foo.bar.post`
-    > -   `PUT /api/1.0/foo/:uid => api.foo.uid.put`
+    - `POST /api/1.0/foo/:bar => api.foo.bar.post`
+    - `PUT /api/1.0/foo/:uid => api.foo.uid.put`
 
 -   If the path contains any parameters, a second permission is also
     generated which drops any tailing `:uid` permissions, and replaces
@@ -312,16 +305,16 @@ more detail on how permissions work, see [Permissions](#permissions).
     "pattern matches". The advantage of this form is that it is immune
     to parameter name changes.
 
-    > -   `GET /api/1.0/foo/:bar => api.foo._.get`
-    > -   `POST /api/1.0/foo/:uid => api.foo.post`
-    > -   `GET /internal/herp/:derp/:uid => internal.herp._.get`
+    - `GET /api/1.0/foo/:bar => api.foo._.get`
+    - `POST /api/1.0/foo/:uid => api.foo.post`
+    - `GET /internal/herp/:derp/:uid => internal.herp._.get`
 
 -   All permissions for an endpoint are combined and used in a Pylor
     `any` check. Thus you may use any of the generated permissions to
     provide access to the endpoint.
 
-    > -   `GET /api/1.0/foo/:bar => any(["api.foo.bar.get", "api.foo._.get"])`
-    > -   `PUT /api/1.0/moo/:uid => any(["api.moo.get", "api.moo.uid.get"])`
+    - `GET /api/1.0/foo/:bar => any(["api.foo.bar.get", "api.foo._.get"])`
+    - `PUT /api/1.0/moo/:uid => any(["api.moo.get", "api.moo.uid.get"])`
 
 Endpoint handlers
 -----------------
@@ -374,10 +367,8 @@ object (and the equivalent function calls for fluent responses).
     automatically detect whether it is a stream response or a
     regular one. Otherwise, you have to set the correct object manually:
 
-    > -   `result` - a JSON object which will be emitted verbatim to
-    >     the client.
-    > -   `stream` - a ReadableStream which will be streamed to
-    >     the client.
+    - `result` - a JSON object which will be emitted verbatim to the client.
+    - `stream` - a ReadableStream which will be streamed to the client.
 
 -   `headers` (`addHeaders(headers)`) - a map of headers to append to
     the response. Multiple calls to the fluent method with identical
@@ -394,10 +385,8 @@ object (and the equivalent function calls for fluent responses).
     destroyed instead. If you are using the fluent methods, you should
     instead use these methods:
 
-    > -   `addCookies(cookies)` - a map of cookies to append to
-    >     the response.
-    > -   `removeCookies(cookie1[, cookie2[, ...]])` - list of cookies
-    >     to remove from the client.
+    - `addCookies(cookies)` - a map of cookies to append to the response.
+    - `removeCookies(cookie1[, cookie2[, ...]])` - list of cookies to remove from the client.
 
 -   `raw` (`rawResponse()`) - the `result` object will be emitted using
     `.send()` instead of `.json()`. Has no effect if a streaming
@@ -443,7 +432,7 @@ server side. Endpoint handlers are exposed in the following manner:
     replaced with themselves *sans* colons, and the verb is appended to
     the end.
 
-    > -   `GET /api/1.0/foo/:bar/:uid => pylor.api.latest.foo.bar.get`
+    - `GET /api/1.0/foo/:bar/:uid => pylor.api.latest.foo.bar.get`
 
 The function called is identical to the one called for a proper HTTP
 call, but there is obviously no real request to serve as the caller
@@ -492,15 +481,15 @@ the `permissions` global.
 
 There are two special values that can be used in permission strings:
 
--   `patterns`: these are values that let you omit a single permission value and allow any value to occur in that specific position. They are represented with underscores. This is useful in situations where you might expect a variety of values (such as multiple verbs). Patterns do not cascade, they only match a single value at the specified level. Examples:
+- `patterns`: these are values that let you omit a single permission value and allow any value to occur in that specific position. They are represented with underscores. This is useful in situations where you might expect a variety of values (such as multiple verbs). Patterns do not cascade, they only match a single value at the specified level. Examples:
 
-    >   `foo.bar._` => matches any of `[foo.bar.moo, foo.bar.blah]` but not `foo.bar.moo.woo`
-    >   `_.two.three` => matches `foo.two.three` but not `zero.one.two.three`
+    - `foo.bar._` => matches any of `[foo.bar.moo, foo.bar.blah]` but not `foo.bar.moo.woo`
+    - `_.two.three` => matches `foo.two.three` but not `zero.one.two.three`
 
--   `wildcards`: these are values that allow you to omit an entire sub-tree of a permission. Wildcards cascade, and thus match any number of additional values, to an arbitrary depth. They are represented with asterisks. They are useful when you want to give someone access to an entire permission type without having to constantly revise it due to future permission changes further down the tree. This feature should be used carefully, because since it grants full access to all permissions below it, you may inadvertently grant access to a permission that was not intended. Examples:
+- `wildcards`: these are values that allow you to omit an entire sub-tree of a permission. Wildcards cascade, and thus match any number of additional values, to an arbitrary depth. They are represented with asterisks. They are useful when you want to give someone access to an entire permission type without having to constantly revise it due to future permission changes further down the tree. This feature should be used carefully, because since it grants full access to all permissions below it, you may inadvertently grant access to a permission that was not intended. Examples:
 
-    >   `foo.bar.*` => matches any of `[foo.bar.one, foo.bar.two, foo.bar.a.b.c.d.e.f]`
-    >   `one.*.two` => the asterisk renders the "two" portion irrelevant, thus this behaves as a permission of the form `one.*`
+    - `foo.bar.*` => matches any of `[foo.bar.one, foo.bar.two, foo.bar.a.b.c.d.e.f]`
+    - `one.*.two` => the asterisk renders the "two" portion irrelevant, thus this behaves as a permission of the form `one.*`
 
 "Custom" (aka. non-endpoint) permissions should be defined in a
 `permissions.json` file. A permission structure
