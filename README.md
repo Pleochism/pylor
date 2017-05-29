@@ -71,15 +71,15 @@ exports.getAllItems = function(options) {
 // If you don't need the options for a promise-based endpoint, it can be omitted
 exports.updateItem = async function() {
 
-  const item = await db.saveThing(this);
-
   // All endpoints are given implicit permissions that can be used for access control
   // The permission system supports roles, wildcards, default permissions, and placeholder values
   if(!pylor.hasAccess("pylor.p.api.anotherSection.values.*", this.session.user))
     throw new Error("You do not have access to any routes under anotherSection.values (exclusive)");
 
+  const item = await db.saveThing(this);
+
   // Configure the response as needed.
-  callback(null, { result: item, code: 202, headers: { "Content-Type": "application/json" } });
+  const resultObject = { result: item, code: 202, headers: { "Content-Type": "application/json" } };
 
   // You can also use a simple fluent interface.
   return rester
