@@ -1,3 +1,6 @@
+Pylor
+---------
+
 Pylor is an API helper library for [Express.js](https://expressjs.com/). It lets you create and manage REST API routes with a simpler wrapper on top of Express, and adds a powerful permission system and support for dogfooding your endpoints.
 
 Pylor has no dependencies, apart from the implicit dependency on Express, and works equally well in both Node.js and the browser.
@@ -73,8 +76,8 @@ exports.updateItem = async function() {
 
   // All endpoints are given implicit permissions that can be used for access control
   // The permission system supports roles, wildcards, default permissions, and placeholder values
-  if(!pylor.hasAccess("pylor.p.api.anotherSection.values.*", this.session.user))
-    throw new Error("You do not have access to any routes under anotherSection.values (exclusive)");
+  if(!pylor.hasAccess(pylor.p.api.anotherSection._.values, this.session.user))
+    throw new Error("Nope");
 
   const item = await db.saveThing(this);
 
@@ -92,4 +95,7 @@ exports.updateItem = async function() {
 
 ```
 
-[Documentation](https://github.com/Pleochism/pylor/blob/master/DOCS.md) (in progress, converted from RST)
+Documentation
+---------
+
+[Documentation](https://github.com/Pleochism/pylor/blob/master/DOCS.md) (in progress)

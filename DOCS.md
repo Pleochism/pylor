@@ -67,21 +67,17 @@ The following methods are exported by Pylor.
 
 ### `init(options)`
 -------------------
-
 Described above.
 
-`getRolePermissions()`
+### `getRolePermissions()`
 ----------------------
 Returns a map of the API
 routes, suitable for dehydration and sending to a client-side instance.
 
 ### `activate(spec, options)`
 -------------------
-
 Set up some new API routes. See the next section for details.
 
-
-As well as the following Middleware\_:
 
 Setting up endpoints
 --------------------
@@ -127,7 +123,7 @@ There's a lot going on here, so let's cover some basics first.
 
 Each level of a spec corresponds to an element of the final endpoint,
 prefixed by the `apiRoot` and `version` properties. Leaf nodes must be
-an endpoint handler (see Endpoint handlers_). Non-leaf nodes that need
+an endpoint handler (see [Endpoint handlers](#endpoint-handlers)). Non-leaf nodes that need
 to represent a parameter, should be prefixed with a colon (eg. `:vm`).
 The tree can be nested infinitely deep. Multiple trees can exist in a
 single spec if required.
@@ -156,7 +152,7 @@ Bulk fetch endpoints *always* return an array of items, even if only a
 single ID is passed to the fetch, or if there is only a single element
 in the response.
 
-`get+` - Bulk & Individual Fetch
+#### `get+` - Bulk & Individual Fetch
 -------------------
 "get+" is a
 contrived verb that indicates a hybrid individual/bulk fetch endpoint.
@@ -192,7 +188,7 @@ to cater for some legacy calls which used PUT to do operations that
 should have been accomplished with POST. In the main example, line 18
 would map to `PUT /api/1.0/vm/:vm/boot`.
 
-`del` or `delete` - Deletion
+#### `del` or `delete` - Deletion
 -------------------
 "del" is a deletion. It is automatically decorated with a single
 parameter, typically corresponding to the unique ID of the item to be
@@ -216,28 +212,25 @@ Leaf nodes can also be an array. If so, the final element of the array
 is expected to be an endpoint handler, and all other elements are
 expected to be Express middleware functions.
 
-Pylor/Pylor defines some middlewares that can be used out of the box
+Pylor defines some middlewares that can be used out of the box
 (all these are accessible on a Pylor instance). Some of these are
 higher order functions that return the middleware, instead of being the
-middleware innately:
+middleware innately.
 
 #### `sslOn`
 -------------------
-
 Require SSL for targeted endpoints.
 
 #### `sslOff`
 -------------------
-
 Don't require SSL for targeted endpoints.
 
 #### `noBasic`
 -------------------
-
 Disable HTTP Basic auth for an endpoint. NOTE: there is no way to
 reverse the effect of this middleware.
 
-`any(permissions[, override])`
+#### `any(permissions[, override])`
 -------------------
 A Pylor
 middleware that will require any of the specified permissions in order
@@ -247,7 +240,7 @@ their permissions. If an `only` call has already set up some exclusive
 permissions in the middleware chain for this endpoint, the `any` call
 will do nothing.
 
-`only(permissions[, override])`
+#### `only(permissions[, override])`
 -------------------
 A Pylor
 middleware that will require all of the specified permissions in order
@@ -267,14 +260,14 @@ authentication.
 
 ------------------------------------------------------------------------
 
-It can be seen that middlewares can be chained as needed to
+Middlewares can be chained as needed to
 enable/disable effects on child nodes. Generally, for example, SSL
 should be enabled at the top level and disabled on a per-endpoint basis
 as required.
 
 > **note**
 >
-> The Pylor `any` middleware is automatically set up by Pylor for each
+> The `any` middleware is automatically set up by Pylor for each
 > API call. It is applied before the user-defined middlewares, allow you
 > to override those permissions if needed, and will merge with other
 > `any` calls as normal. See the next section for more information.
@@ -415,7 +408,7 @@ object (and the equivalent function calls for fluent responses).
 
 For example, the following two responses are identical:
 
-``` {.sourceCode .javascript}
+```javascript
 return {
     headers: {
         "X-Foo": 1,
@@ -427,7 +420,7 @@ return {
 }
 ```
 
-``` {.sourceCode .javascript}
+```javascript
 return pylor.response([])
     .addHeaders({ "X-Foo": 1 })
     .status(403)
@@ -499,27 +492,18 @@ the `permissions` global.
 
 There are two special values that can be used in permission strings:
 
--
+-   `patterns`: these are values that let you omit a single permission value and allow any value to occur in that specific position. They are represented with underscores. This is useful in situations where you might expect a variety of values (such as multiple verbs). Patterns do not cascade, they only match a single value at the specified level. Examples:
 
-    `patterns`: these are values that let you omit a single permission value and allow any value to occur in that specific position. They are represented with underscores. This is useful in situations where you might expect a variety of values (such as multiple verbs). Patterns do not cascade, they only match a single value at the specified level. Examples:
+    >   `foo.bar._` => matches any of `[foo.bar.moo, foo.bar.blah]` but not `foo.bar.moo.woo`
+    >   `_.two.three` => matches `foo.two.three` but not `zero.one.two.three`
 
-    :   -   `foo.bar._` =&gt; matches any of
-            `[foo.bar.moo, foo.bar.blah]` but not `foo.bar.moo.woo`
-        -   `_.two.three` =&gt; matches `foo.two.three` but not
-            `zero.one.two.three`
+-   `wildcards`: these are values that allow you to omit an entire sub-tree of a permission. Wildcards cascade, and thus match any number of additional values, to an arbitrary depth. They are represented with asterisks. They are useful when you want to give someone access to an entire permission type without having to constantly revise it due to future permission changes further down the tree. This feature should be used carefully, because since it grants full access to all permissions below it, you may inadvertently grant access to a permission that was not intended. Examples:
 
--
-
-    `wildcards`: these are values that allow you to omit an entire sub-tree of a permission. Wildcards cascade, and thus match any number of additional values, to an arbitrary depth. They are represented with asterisks. They are useful when you want to give someone access to an entire permission type without having to constantly revise it due to future permission changes further down the tree. This feature should be used carefully, because since it grants full access to all permissions below it, you may inadvertently grant access to a permission that was not intended. Examples:
-
-    :   -   `foo.bar.*` =&gt; matches any of
-            `[foo.bar.one, foo.bar.two, foo.bar.a.b.c.d.e.f]`
-        -   `one.*.two` =&gt; the asterisk renders the "two" portion
-            irrelevant, thus this behaves as a permission of the form
-            `one.*`
+    >   `foo.bar.*` => matches any of `[foo.bar.one, foo.bar.two, foo.bar.a.b.c.d.e.f]`
+    >   `one.*.two` => the asterisk renders the "two" portion irrelevant, thus this behaves as a permission of the form `one.*`
 
 "Custom" (aka. non-endpoint) permissions should be defined in a
-`permissions.json` file in the /config folder. A permission structure
+`permissions.json` file. A permission structure
 looks like this:
 
 ```javascript
@@ -568,14 +552,14 @@ defined in permissions.json, permission checks for that value will fail.
 
 The following methods are exposed for working with permissions:
 
-`pylor.registerAccessExtension(permission, lookup)`
+#### `pylor.registerAccessExtension(permission, lookup)`
 -------------------
 This method registers a new access extension.
 
 Access extensions allow you to dynamically modify permission checks.
 When the specified `permission` is processed during any access check,
 the `lookup` function will be invoked synchronously and given the
-`userData` object from the initial call. The function must then return a
+`user` object from the initial call. The function must then return a
 boolean which will be OR'd with the main response, thus allowing you to
 perform custom logic to determine if a user should have access.
 
@@ -635,17 +619,15 @@ roles: patterns, wildcards, and negation. Patterns and wildcards are
 identical to the way they are used in standalone permissions\_. Negation
 is however specific to permission strings inside roles:
 
--
+- `negation`: permissions can be negated within roles. This allows you to revoke access for a permission that might be granted by another role, ensuring that the user does NOT have a certain permission. Negated permissions have a priority hierarchy, which works as such:
 
-    `negation`: permissions can be negated within roles. This allows you to revoke access for a permission that might be granted by another role, ensuring that the user does NOT have a certain permission. Negated permissions have a priority hierarchy, which works as such:
-
-    :   -   Standard negated permission (eg. `!foo.bar`) have higher
+    >   Standard negated permission (eg. `!foo.bar`) have higher
             priority than regular permissions, but lower priority than
             wildcard permission. So in that example, a permission of
             `foo.bar` would be negated, but a permission of `foo.*`
             would override it, and the role would thus match on
             `foo.bar`.
-        -   Negated wildcard permissions (eg. `!foo.*`) have higher
+    >   Negated wildcard permissions (eg. `!foo.*`) have higher
             priority than all other permissions that are matched by that
             permission; for example, this would negate both `foo.moo`
             and `foo.bar`.
@@ -735,7 +717,7 @@ for in database functions to detect "full access" permissions.
 
 The following methods are available for doing grant checks:
 
-`pylor.matchGrantValues(grantName, userData, values)`
+#### `pylor.matchGrantValues(grantName, userData, values)`
 -------------------
 This method checks if a user's grants allow access to one or more values
 for a specified grant. This method knows how to check for `grants.all`
@@ -751,7 +733,7 @@ the user's roles), and a `grants` property if applicable.
 user's grants. If it is an array, the user only needs to be able to
 match one of the values for the call to succeed.
 
-`pylor.hasGrantAccess(grantName, userData)`
+#### `pylor.hasGrantAccess(grantName, userData)`
 -------------------
 This method checks if a user is allocated the specified grant. This does
 not say anything about whether or not the user has values for the grant.
@@ -764,7 +746,7 @@ typical form.
 `userData` is a user object containing a `roles` property (an array of
 the user's roles).
 
-`pylor.getGrantValues(grantName, userData[, noExtensions])`
+#### `pylor.getGrantValues(grantName, userData[, noExtensions])`
 -------------------
 This method returns an array of the values that the user is assigned to
 for a specific grant. If the user is not permitted to access the grant,
@@ -780,6 +762,7 @@ If `noExtensions` is set, extension methods will not be used when
 calculating grant values.
 
 #### `pylor.registerGrantExtension(grantName, lookup)`
+-------------------
 
 This method registers a new grant extension.
 
