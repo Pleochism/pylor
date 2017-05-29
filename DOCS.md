@@ -679,7 +679,7 @@ internal identifying value for that grant. Note that there is no
 indication of what the dynamic list of values for a specific grant are;
 this is decided externally, by the consuming application.
 
-Grants are also exposed on a Pylor instance via the pylor.g property.
+Grants are also exposed on a Pylor instance via the `pylor.g` property.
 
 Also at runtime, Pylor generates some permissions corresponding to
 grants. It will do this automatically based on the grants provided to
@@ -687,8 +687,8 @@ the instance constructor. Each grant gets two permissions associated
 with it (and these are merged into the existing permission set, thus
 making them available on `pylor.p` like all other permissions):
 
-`grants.main.grant_name`
-`grants.all.grant__name`
+ - `grants.main.grant_name`
+ - `grants.all.grant_name`
 
 The permissions under `grants.all` are intended to give full access to
 that grant. So if this was a grant that gave access to specific
@@ -700,8 +700,8 @@ has regular access to a grant. It does not indicate whether the user has
 any values for that grant, and if they do not have any, then this will
 behave as if they did not have the permission at all.
 
-When a user logs in, the grants are iterated and all `grants.all`
-permissions are converted to `null`. This is then checked for in the
+When a user logs in, the grants should be iterated and all `grants.all`
+permissions converted to `null`. This is then checked for in the
 appropriate methods, such as `matchGrantValues`, and can also be checked
 for in database functions to detect "full access" permissions.
 
