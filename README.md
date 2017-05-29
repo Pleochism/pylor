@@ -19,6 +19,8 @@ const pylor = require("pylor");
 
 exports.setup = () => {
   const restStructure = {
+
+    // This entire object will be exposed at /api/1.0/items
     items: {
       // Apply middleware at any level to have it apply to all sibling and child nodes
       _middleware: [pylor.sslOn],
