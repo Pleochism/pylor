@@ -11,13 +11,85 @@ Installation
 -------------
 `npm install --save pylor`
 
-Example
----------
+Why do I want this? _DO_ I want this?
+--------------------------------------
+Pylor aims to make life easier when your backend is more or less just Express. Pylor is not a replacement for Express, nor is it trying to be a fundamental rework of how Express does things, nor an extremely clever DSL. It is just a wrapper designed to be obvious and simple.
+
+Use Pylor if you want some or all of these:
+* A REST system that works with Express instead of replacing it.
+* A logical convention for organising your endpoint controllers.
+* A fire-and-forget system for adding new endpoints.
+* A mechanism for versioning your API easily.
+* A powerful permission system, integrated directly into your endpoints, and extensible to the rest of your backend (and front-end if needed).
+* A standard for consuming controllers internally, aka. dogfooding.
+* It's been 3 months so it's time to rewrite your codebase with something new.
+
+Don't use Pylor if:
+* You don't want to.
+* You distrust people who bothered to aim for 100% coverage. They're probably counterproductively obsessive.
+* You looked up the name and now you're imagining sphincters and it's grossing you out a litte.
+
+Walkthrough
+-----------------
+
+Boilerplate
+=============
+
+First, you need to initialise Pylor once, with whatever options you need. Typically, this will occur directly after the Express instance is instantiated:
+
+```javascript
+  pylor.init({ server: express });
+```
+
+The `server` property is the only required property, but there are several others. The permission system will be inactive without some of them. You can read the full list in the [documentation](https://github.com/Pleochism/pylor/blob/master/DOCS.md#initialising-pylor).
+
+Then, you need to set up some system for loading the endpoints. The convention is to define each section of the API in it's own file, which is then stored in a folder. You can then use a module like [walk](https://github.com/Daplie/node-walk) to iterate all the API pieces and load them. Here's an example of that:
+
+```javascript
+  const path = require("path");
+  const walk = require("walk");
+
+  const apiFolder = "/some/path";
+
+  const walker = walk.walk(apiFolder, {});
+
+  walker.on("file", (root, fileStats, next) => {
+    if(path.extname(fileStats.name) !== ".js")
+      return next();
+
+    try {
+      const mod = require(path.join(root, fileStats.name));
+      if(typeof mod.setup === "function")
+        mod.setup();
+    }
+    catch(e) {
+      console.error("Error loading API definition from " + fileStats.name);
+    }
+
+    next();
+  });
+
+  walker.on("end", () => {
+    console.log("Finished loading API");
+  });
+```
+
+Alternatives include iterating a fixed list of known files, or using some form of module self-registration.
+
+The loading is done - again, by convention - by exporting a method named `setup()` from each file. This method should perform all the logic required to configure that particular set of endpoints. Typically, this is just a call to `pylor.active()` with the object defining the structure.
+
+Once that's done, you're set to begin defining endpoints.
+
+Endpoints
+=========
+
+Here is an annotated sample endpoint file, which exports a `setup()` method as described in the previous section.
 
 ```javascript
 const pylor = require("pylor");
 
 exports.setup = () => {
+
   const restStructure = {
 
     // This entire object will be exposed at /api/1.0/items
@@ -41,7 +113,9 @@ exports.setup = () => {
     },
   };
 
+  // Add these endpoints to
   pylor.activate(restStructure);
+
 };
 
 // Endpoints can use callbacks...
