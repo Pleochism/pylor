@@ -3,7 +3,7 @@
   "description": "A simple library for creating and managing REST APIs and their permissions in Node.js and the browser",
   "keywords": ["rest", "access control", "express"],
   "homepage": "https://github.com/Pleochism/pylor",
-  "version": "0.10.2",
+  "version": "1.0.0",
   "author": "Daniel Lowes <pleochism@gmail.com>",
   "repository": {
     "type": "git",
