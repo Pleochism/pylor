@@ -1,5 +1,4 @@
-Pylor
----------
+# Pylor
 
 Pylor is an API helper library for [Express.js](https://expressjs.com/). It lets you create and manage REST API routes with a simpler wrapper on top of Express, and adds a powerful permission system and support for dogfooding your endpoints.
 
@@ -7,12 +6,10 @@ Pylor has no dependencies, apart from the implicit dependency on Express, and wo
 
 Pylor was initially developed for internal use at [ITSI](https://www.it.si).
 
-Installation
--------------
+## Installation
 `npm install --save pylor`
 
-Why do I want this? _DO_ I want this?
---------------------------------------
+## Why do I want this? _DO_ I want this?
 Pylor aims to make life easier when your backend is more or less just Express. Pylor is not a replacement for Express, nor is it trying to be a fundamental rework of how Express does things, nor an extremely clever DSL. It is just a wrapper designed to be obvious and simple.
 
 Use Pylor if you want some or all of these:
@@ -29,11 +26,9 @@ Don't use Pylor if:
 * You distrust people who bothered to aim for 100% coverage. They're probably counterproductively obsessive.
 * You looked up the name and now you're imagining sphincters and it's grossing you out a litte.
 
-Walkthrough
------------------
+## Walkthrough
 
-Boilerplate
-=============
+### Boilerplate
 
 First, you need to initialise Pylor once, with whatever options you need. Typically, this will occur directly after the Express instance is instantiated:
 
@@ -80,8 +75,7 @@ The loading is done - again, by convention - by exporting a method named `setup(
 
 Once that's done, you're set to begin defining endpoints.
 
-Endpoints
-=========
+### Endpoints
 
 Here is an annotated sample endpoint file, which exports a `setup()` method as described in the previous section.
 
@@ -171,7 +165,6 @@ exports.updateItem = async function() {
 
 ```
 
-Documentation
----------
+## Documentation
 
 [Documentation](https://github.com/Pleochism/pylor/blob/master/DOCS.md) (in progress)

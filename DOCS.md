@@ -3,8 +3,7 @@ Pylor
 
 Pylor is primarily a server-side API helper that wraps
 [ExpressJS](www.expressjs.com) to add a simpler endpoint definition
-system, endpoint dogfooding and roles & permissions. Pylor is used for
-all API operations in an Acacia application.
+system, endpoint dogfooding and roles & permissions.
 
 Pylor can also be used on the client-side to perform permission checks.
 
@@ -38,13 +37,9 @@ server-side use:
 
 **Permission options**
 
--   `roles` - a map of all roles. In a standard Acacia
-    application, this is your `roles.json` file from the /config folder.
--   `permissions` - a map of all custom permissions. In a standard
-    Acacia application, this is your `permissions.json` file from the
-    /config folder.
--   `grants` - a map of all grants. In a standard Acacia application,
-    this is your `grants.json` file from the /config folder.
+-   `roles` - a JSON object of all roles.
+-   `permissions` - a JSOn object of all custom permissions.
+-   `grants` - a JSON object map of all grants.
 -   `rolePermissions` - (client-side only) the client Pylor requires a
     list of all API routes to be able to map permissions to routes, but
     it has no innate knowledge of these routes, unlike the server. This
@@ -71,8 +66,7 @@ Described above.
 
 #### `getRolePermissions()`
 
-Returns a map of the API
-routes, suitable for dehydration and sending to a client-side instance.
+Returns a map of the API routes, suitable for dehydration and sending to a client-side instance.
 
 #### `activate(spec, options)`
 
