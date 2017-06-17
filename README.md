@@ -7,7 +7,7 @@
 - [Introduction](#introduction)
 - [Installation](#installation)
 - [Why do I want this? _DO_ I want this?](#why-do-i-want-this-_do_-i-want-this)
-- [Walkthrough](#walkthrough)
+- [Basic Walkthrough](#basic-walkthrough)
   - [Boilerplate](#boilerplate)
   - [Endpoints](#endpoints)
 - [Documentation](#documentation)
@@ -42,7 +42,7 @@ Don't use Pylor if:
 * You distrust people who bothered to aim for 100% coverage. They're probably counterproductively obsessive.
 * You looked up the name and now you're imagining sphincters and it's grossing you out a litte.
 
-## Walkthrough
+## Basic Walkthrough
 
 ### Boilerplate
 
