@@ -1,3 +1,5 @@
+# Pylor documentation
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
@@ -38,8 +40,6 @@
       - [`pylor.registerGrantExtension(grantName, lookup)`](#pylorregistergrantextensiongrantname-lookup)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-# Pylor
 
 Pylor is primarily a server-side API helper that uses [ExpressJS](www.expressjs.com) to add a simpler endpoint definition system, endpoint dogfooding and roles & permissions.
 

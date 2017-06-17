@@ -1,3 +1,5 @@
+# Pylor
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
@@ -11,8 +13,6 @@
   - [Documentation](#documentation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-# Pylor
 
 Pylor is an API helper library for [Express.js](https://expressjs.com/). It lets you create and manage REST API routes with a simpler wrapper on top of Express, and adds a powerful permission system and support for dogfooding your endpoints.
 
