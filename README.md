@@ -22,6 +22,8 @@ Pylor has no dependencies, apart from the implicit dependency on Express, and wo
 
 Pylor was initially developed for internal use at [ITSI](https://www.it.si).
 
+[![Build Status](https://travis-ci.org/Pleochism/pylor.svg?branch=master)](https://travis-ci.org/Pleochism/pylor) [![Coverage Status](https://coveralls.io/repos/github/Pleochism/pylor/badge.svg?branch=master)](https://coveralls.io/github/Pleochism/pylor?branch=master)
+
 ## Installation
 `npm install --save pylor`
 
