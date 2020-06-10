@@ -1,9 +1,21 @@
+// jshint ignore: start
+/* eslint no-unused-vars: "off" */
+/* eslint no-unused-expressions: "off" */
+/* eslint max-nested-callbacks: "off" */
+/* jshint unused:false */
 /* global describe, it, before, beforeEach, after, afterEach */
 
+var proxyquire = require("proxyquire");
 var sinon = require("sinon");
 var chai = require("chai");
+chai.use(require("chai-datetime"));
 chai.use(require("chai-match-pattern"));
+var nock = require("nock");
+var fsmock = require("mock-fs");
+var path = require("path");
+var fs = require("fs");
 var _ = require("lodash-match-pattern").getLodashModule();
+var moment = require("moment");
 
 var utils = require("../lib/utilities");
 var pylor = require("../lib/pylor");
@@ -307,6 +319,24 @@ describe("Rester", function() {
 			return expect(spy.args[0][3]).to.matchPattern({ result: {} });
 		});
 
+		it("should insert a default value if no response is sent back for promises", function() {
+			var calls = {
+				cb: function(o) { return Promise.resolve(null); },
+				endpoint: sinon.spy(),
+			};
+
+			sinon.spy(calls, "cb");
+
+			var mware = module.createHttpHandler("get", calls.cb, calls.endpoint);
+
+			var ret = mware(req, res);
+
+			return Promise.resolve(ret).then(() => {
+				expect(calls.endpoint.args[0][2]).to.be.null;
+				expect(calls.endpoint.args[0][3]).to.matchPattern({ result: {} });
+			});
+		});
+
 		it("should handle callback responses with only an error", function() {
 			var calls = {
 				cb: function(o, c) { c(new Error("1")); },
@@ -471,6 +501,7 @@ describe("Rester", function() {
 				uids: ["id"],
 				narf: 1,
 				derp: "moo",
+				session: {},
 			});
 			expect(calls.cb.args[0][1]).to.be.an.instanceof(Function);
 		});
@@ -543,6 +574,30 @@ describe("Rester", function() {
 			expect(calls.cb.args[0][0].narf).to.equal(1);
 		});
 
+		it("should handle encoded slashes in parameters", function() {
+			var calls = {
+				cb: function(o, c) {},
+				endpoint: sinon.spy(),
+			};
+
+			sinon.spy(calls, "cb");
+
+			var mware = module.createHttpHandler("get", calls.cb);
+
+			var customReq = _.clone(req);
+			customReq.query = {};
+			customReq.params = [
+				"/slash",
+			],
+			customReq.params.narf = "test";
+			customReq.route.path = "/foo/:narf*";
+
+			mware(customReq, res);
+
+			expect(calls.cb.args[0][0].narf).to.equal("test/slash");
+			expect(calls.cb.args[0][0].uid).to.equal("test/slash");
+		});
+
 		describe("HTTP endpoint", function() {
 			var req = {
 				query: {
@@ -596,11 +651,15 @@ describe("Rester", function() {
 					checkResult: true,
 				};
 
+				req.fullErrors = true;
+
 				module.httpEndpoint(req, res, null, output);
 
 				expect(res.json.calledAfter(res.status)).to.be.true;
 				expect(res.status.calledWith(410)).to.be.true;
-				expect(res.json.calledWith({ info: "Resource not found", detail: "Resource not found", api: true, reqPath: "GRUNT /some/path" })).to.be.true;
+				expect(res.json.calledWith({ info: "Resource not found", detail: "Resource not found", reqPath: "GRUNT /some/path", statusCode: undefined, noLog: undefined, stack: undefined })).to.be.true;
+
+				req.fullErrors = false;
 			});
 
 			it("should append a CSRF token if requested", function() {
@@ -625,12 +684,47 @@ describe("Rester", function() {
 				var e = new Error("Some error here");
 				e.detail = "Moo";
 
+				req.fullErrors = true;
+
 				module.httpEndpoint(req, res, e, output);
 
 				expect(res.json.calledAfter(res.status)).to.be.true;
 				expect(res.status.calledWith(500)).to.be.true;
 				expect(res.json.calledWith(e)).to.be.true;
+
+				req.fullErrors = false;
 			});
+
+			it("should output simple errors if requested and an error occurred", function() {
+				var output = {};
+
+				var e = new Error("Some error here");
+				req.fullErrors = false;
+
+				module.httpEndpoint(req, res, e, output);
+
+				expect(res.json.calledAfter(res.status)).to.be.true;
+				expect(res.status.calledWith(500)).to.be.true;
+				expect(res.json.args[0][0]).to.matchPattern({ info: "There was an error completing the request", detail: "An unexpected error occurred on the server" });
+
+				delete req.fullErrors;
+			});
+
+			it("should output complex errors if requested and an error occurred", function() {
+				var output = {};
+
+				var e = new Error("Some error here");
+				req.fullErrors = true;
+
+				module.httpEndpoint(req, res, e, output);
+
+				expect(res.json.calledAfter(res.status)).to.be.true;
+				expect(res.status.calledWith(500)).to.be.true;
+				expect(res.json.args[0][0]).to.matchPattern({ info: "Some error here", detail: "Some error here", reqPath: "GRUNT /some/path" });
+
+				delete req.fullErrors;
+			});
+
 
 			it("should construct an accurate reqPath for errors", function() {
 				var creq = _.clone(req);
@@ -649,18 +743,6 @@ describe("Rester", function() {
 				expect(res.json.calledAfter(res.status)).to.be.true;
 				expect(res.status.calledWith(500)).to.be.true;
 				expect(e.reqPath).to.equal("GRUNT /some/path?foo=1&bar=moo");
-			});
-
-			it("should flag errors as having originated from the API", function() {
-				var output = {};
-
-				var e = new Error("Some error here");
-
-				module.httpEndpoint(req, res, e, output);
-
-				expect(res.json.calledAfter(res.status)).to.be.true;
-				expect(res.status.calledWith(500)).to.be.true;
-				expect(e.api).to.be.true;
 			});
 
 			it("should populate the error info property if missing", function() {
@@ -685,25 +767,6 @@ describe("Rester", function() {
 				expect(res.json.calledAfter(res.status)).to.be.true;
 				expect(res.status.calledWith(500)).to.be.true;
 				expect(e.detail).to.equal("Some error here");
-			});
-
-
-			it("should remove some error properties if the error originated in Couch", function() {
-				var output = {};
-
-				var e = new Error("Some error here");
-				e.scope = "couch";
-				e.request = 1;
-				e.headers = 2;
-				e.name = 3;
-				e.description = 4;
-
-				module.httpEndpoint(req, res, e, output);
-
-				expect(e.request).to.be.undefined;
-				expect(e.headers).to.be.undefined;
-				expect(e.name).to.equal("Error");
-				expect(e.description).to.be.undefined;
 			});
 
 			it("should wipe the error stack before emitting", function() {
@@ -809,7 +872,7 @@ describe("Rester", function() {
 
 				module.httpEndpoint(req, res, null, output);
 
-				expect(res.status.called).to.be.false;
+				expect(res.status.called).to.be.true;
 				expect(res.json.called).to.be.false;
 				expect(res.end.called).to.be.true;
 			});
@@ -909,6 +972,16 @@ describe("Rester", function() {
 				};
 
 				return Promise.resolve(call(opts)).then(r => assert(false)).catch(e => expect(e).to.be.instanceof(Error));
+			});
+
+			it("should return the raw Response when mocking and the current module is excepted and is using promises", function() {
+				var spy = sinon.spy();
+				var cb = function() { return Promise.resolve(module.response(2).status(201)); };
+				var call = module.createApiHandler({ mockDogfood: true, mockExceptions: ["foo"], spec: { foo: {} } }, cb);
+
+				return call({}).then(result => {
+					expect(result).to.matchPattern({ result: 2, code: 201 });
+				});;
 			});
 		});
 
@@ -1074,7 +1147,7 @@ describe("Rester", function() {
 
 			call({}, function(o, c) {});
 
-			expect(spy.args[0][0]).to.matchPattern({ internal: true, multiID: false, headers: {} });
+			expect(spy.args[0][0]).to.matchPattern({ internal: true, multiID: true, headers: {}, query: {}, session: {}, body: {} });
 			expect(spy.args[0][1]).to.be.an.instanceof(Function);
 		});
 
@@ -1109,7 +1182,7 @@ describe("Rester", function() {
 
 	describe("createApiPermissionChecks", function() {
 		it("should prepend API permissions with 'api' and drop the version", function() {
-			var input = "/api/1.0/foo/bar";
+			var input = "/api/v1/foo/bar";
 
 			var output = [
 				"api.foo.bar.get",
@@ -1354,7 +1427,7 @@ describe("Rester", function() {
 
 			module.activate(spec);
 
-			expect(opts.server.get.calledWith("/api/1.0/foo/:moo", module.Pylor.sslOff, sinon.match.func, module.httpBasic, module.Pylor.checkPermission), sinon.match.func).to.be.true;
+			expect(opts.server.get.calledWith("/api/v1/foo/:moo", module.Pylor.sslOff, sinon.match.func, module.httpBasic, module.Pylor.checkPermission), sinon.match.func).to.be.true;
 		});
 
 		describe("Verb mappings", function() {
@@ -1375,8 +1448,8 @@ describe("Rester", function() {
 
 				module.activate(spec);
 
-				expect(opts.server.get.calledWith("/api/1.0/foo")).to.be.true;
-				expect(opts.server.get.calledWith("/api/1.0/foo/:uid")).to.be.true;
+				expect(opts.server.get.calledWith("/api/v1/foo")).to.be.true;
+				expect(opts.server.get.calledWith("/api/v1/foo/:uid")).to.be.true;
 			});
 
 			it("should map get", function() {
@@ -1396,8 +1469,8 @@ describe("Rester", function() {
 
 				module.activate(spec);
 
-				expect(opts.server.get.calledWith("/api/1.0/foo")).to.be.true;
-				expect(opts.server.get.calledWith("/api/1.0/foo/:uid")).to.be.false;
+				expect(opts.server.get.calledWith("/api/v1/foo")).to.be.true;
+				expect(opts.server.get.calledWith("/api/v1/foo/:uid")).to.be.false;
 			});
 
 			it("should prefer lowest GET definition that satisfies", function() {
@@ -1440,8 +1513,8 @@ describe("Rester", function() {
 
 				module.activate(spec);
 
-				expect(opts.server.post.calledWith("/api/1.0/foo")).to.be.true;
-				expect(opts.server.post.calledWith("/api/1.0/foo/:uid")).to.be.false;
+				expect(opts.server.post.calledWith("/api/v1/foo")).to.be.true;
+				expect(opts.server.post.calledWith("/api/v1/foo/:uid")).to.be.false;
 			});
 
 			it("should map put", function() {
@@ -1461,8 +1534,8 @@ describe("Rester", function() {
 
 				module.activate(spec);
 
-				expect(opts.server.put.calledWith("/api/1.0/foo")).to.be.false;
-				expect(opts.server.put.calledWith("/api/1.0/foo/:uid")).to.be.true;
+				expect(opts.server.put.calledWith("/api/v1/foo")).to.be.false;
+				expect(opts.server.put.calledWith("/api/v1/foo/:uid")).to.be.true;
 			});
 
 			it("should map put-", function() {
@@ -1482,8 +1555,8 @@ describe("Rester", function() {
 
 				module.activate(spec);
 
-				expect(opts.server.put.calledWith("/api/1.0/foo/:uid")).to.be.false;
-				expect(opts.server.put.calledWith("/api/1.0/foo")).to.be.true;
+				expect(opts.server.put.calledWith("/api/v1/foo/:uid")).to.be.false;
+				expect(opts.server.put.calledWith("/api/v1/foo")).to.be.true;
 			});
 
 			it("should map delete", function() {
@@ -1503,8 +1576,8 @@ describe("Rester", function() {
 
 				module.activate(spec);
 
-				expect(opts.server.delete.calledWith("/api/1.0/foo/:uid")).to.be.true;
-				expect(opts.server.delete.calledWith("/api/1.0/foo")).to.be.false;
+				expect(opts.server.delete.calledWith("/api/v1/foo/:uid")).to.be.true;
+				expect(opts.server.delete.calledWith("/api/v1/foo")).to.be.false;
 			});
 
 			it("should map patch", function() {
@@ -1524,8 +1597,8 @@ describe("Rester", function() {
 
 				module.activate(spec);
 
-				expect(opts.server.patch.calledWith("/api/1.0/foo/:uid")).to.be.true;
-				expect(opts.server.patch.calledWith("/api/1.0/foo")).to.be.false;
+				expect(opts.server.patch.calledWith("/api/v1/foo/:uid")).to.be.true;
+				expect(opts.server.patch.calledWith("/api/v1/foo")).to.be.false;
 			});
 		});
 
@@ -1547,7 +1620,7 @@ describe("Rester", function() {
 
 			module.activate(spec);
 
-			expect(opts.server.get.calledWith("/api/1.0/foo/:moo", module.Pylor.sslOn, sinon.match.func, module.Pylor.checkPermission), sinon.match.func).to.be.true;
+			expect(opts.server.get.calledWith("/api/v1/foo/:moo", module.Pylor.sslOn, sinon.match.func, module.Pylor.checkPermission), sinon.match.func).to.be.true;
 		});
 
 		it("should enable an SSL check", function() {
@@ -1568,7 +1641,7 @@ describe("Rester", function() {
 
 			module.activate(spec);
 
-			expect(opts.server.get.calledWith("/api/1.0/foo/:moo", module.Pylor.sslOn, sinon.match.func, module.Pylor.checkPermission), sinon.match.func).to.be.true;
+			expect(opts.server.get.calledWith("/api/v1/foo/:moo", module.Pylor.sslOn, sinon.match.func, module.Pylor.checkPermission), sinon.match.func).to.be.true;
 		});
 
 		it("should extend cached permissions with the generated permissions for the current path", function() {
@@ -1629,7 +1702,7 @@ describe("Rester", function() {
 
 			module.activate(spec);
 
-			expect(opts.server.get.calledWith("/api/1.0/foo/moo", module.Pylor.sslOff, sinon.match.func, mware1, mware2, module.Pylor.checkPermission, sinon.match.func)).to.be.true;
+			expect(opts.server.get.calledWith("/api/v1/foo/moo", module.Pylor.sslOff, sinon.match.func, mware1, mware2, module.Pylor.checkPermission, sinon.match.func)).to.be.true;
 		});
 
 		it("should extend the server calls with defined middlewares before inline middleware", function() {
@@ -1653,7 +1726,7 @@ describe("Rester", function() {
 
 			module.activate(spec);
 
-			expect(opts.server.get.calledWith("/api/1.0/foo/moo", module.Pylor.sslOff, sinon.match.func, mware1, mware2, module.Pylor.checkPermission, sinon.match.func)).to.be.true;
+			expect(opts.server.get.calledWith("/api/v1/foo/moo", module.Pylor.sslOff, sinon.match.func, mware1, mware2, module.Pylor.checkPermission, sinon.match.func)).to.be.true;
 		});
 	});
 });

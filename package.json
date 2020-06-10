@@ -1,13 +1,13 @@
 {
   "name": "pylor",
-  "description": "A simple library for creating and managing REST APIs and their permissions in Node.js and the browser",
+  "description": "A library for creating and managing REST APIs and their permissions in Node.js and the browser",
   "keywords": [
     "rest",
     "access control",
     "express"
   ],
   "homepage": "https://github.com/Pleochism/pylor",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Daniel Lowes <pleochism@gmail.com>",
   "repository": {
     "type": "git",
@@ -15,19 +15,23 @@
   },
   "devDependencies": {
     "chai": "3.5.0",
+    "chai-datetime": "1.4.1",
     "chai-match-pattern": "1.0.0",
-    "coveralls": "^2.13.1",
     "mocha": "3.2.0",
-    "mocha-lcov-reporter": "^1.3.0",
+    "mochawesome": "2.0.3",
+    "mock-fs": "4.2.0",
+    "moment": "2.17.1",
+    "nock": "8.2.1",
     "nyc": "10.1.2",
+    "proxyquire": "1.7.11",
     "sinon": "1.17.7"
   },
   "main": "lib/rester.js",
   "scripts": {
-    "test": "nyc --reporter=text-lcov mocha tests | ./node_modules/coveralls/bin/coveralls.js"
+    "test": "nyc --reporter=html --reporter=text mocha tests --reporter mochawesome"
   },
   "license": "MIT",
   "engines": {
-    "node": ">=4.0.0"
+    "node": ">=7.8.0"
   }
 }

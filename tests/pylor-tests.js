@@ -78,6 +78,8 @@ describe("Pylor", function() {
 					bar: null,
 				},
 			},
+			superminus: {},
+			superplus: {},
 		};
 
 		expect(module.resolveRole(role1)).to.matchPattern(answer1);
@@ -128,7 +130,7 @@ describe("Pylor", function() {
 		});
 
 		it("should assign the permissions", function() {
-			expect(module.permissions).to.matchPattern({ foo: module.resolveRole(opts.roles.foo), bar: { plus: {}, minus: {} } });
+			expect(module.permissions).to.matchPattern({ foo: module.resolveRole(opts.roles.foo), bar: { plus: {}, minus: {}, superminus: {}, superplus: {} } });
 		});
 	});
 
@@ -228,6 +230,23 @@ describe("Pylor", function() {
 			module.registerGrantExtension("bob", () => [2,3,4]);
 
 			expect(module.getGrantValues("bob", user, true)).to.matchPattern([1,2]);
+		});
+
+		it("should treat a null response from an extension as full access when using matchGrantValue", function() {
+			module.registerGrantExtension("bob", () => null);
+
+			expect(module.matchGrantValues("bob", user, "blerp")).to.be.true;
+		});
+
+		it("should pass extra values through to grant extensions", function() {
+			module.registerGrantExtension("bob", (user, extra) => {
+				if(extra)
+					return null;
+				return [];
+			});
+
+			expect(module.matchGrantValues("bob", user, "blerp")).to.be.false;
+			expect(module.matchGrantValues("bob", user, "blerp", true)).to.be.true;
 		});
 	});
 
@@ -421,6 +440,29 @@ describe("Pylor", function() {
 			expect(module.hasAccess("perm.berm.nope", { roles: ["role"] })).to.be.false;
 		});
 
+		it("should prefer negated permissions over regular permissions across roles", function() {
+			var opts = {
+				roles: {
+					"role": {
+						permissions: [
+							"perm.berm.nope",
+						],
+					},
+					"role2": {
+						permissions: [
+							"!perm.berm.nope",
+						],
+					},
+				},
+				permissions: [],
+			};
+
+			module.init(opts);
+
+			expect(module.hasAccess("perm.berm.nope", { roles: ["role", "role2"] })).to.be.false;
+			expect(module.hasAccess("perm.berm.nope", { roles: ["role2", "role"] })).to.be.false;
+		});
+
 		it("should prefer wildcard checks over regular negated permissions", function() {
 			var opts = {
 				roles: {
@@ -437,6 +479,66 @@ describe("Pylor", function() {
 			module.init(opts);
 
 			expect(module.hasAccess("perm.berm.*", { roles: ["role"] })).to.be.true;
+		});
+
+		it("should prefer wildcard checks over regular negated permissions across roles", function() {
+			var opts = {
+				roles: {
+					"role": {
+						permissions: [
+							"!api.epubs.choices.get",
+						],
+					},
+					"role2": {
+						permissions: [
+							"api.epubs.*",
+						],
+					}
+				},
+				permissions: [],
+			};
+
+			module.init(opts);
+
+			expect(module.hasAccess("api.epubs.choices.get", { roles: ["role", "role2"] })).to.be.true;
+		});
+
+		it("should prefer strongly negated permissions over wildcard checks", function() {
+			var opts = {
+				roles: {
+					"role": {
+						permissions: [
+							"zilch.*",
+							"!!zilch.blarg",
+						],
+					},
+				},
+				permissions: [],
+			};
+
+			module.init(opts);
+
+			expect(module.hasAccess("zilch.*", { roles: ["role"] })).to.be.true;
+			expect(module.hasAccess("zilch.blarg", { roles: ["role"] })).to.be.false;
+		});
+
+		it("should prefer strongly negated permissions over wildcard checks with placeholders", function() {
+			var opts = {
+				roles: {
+					"role": {
+						permissions: [
+							"api.epubs._.*",
+							"!!api.epubs.choices.*",
+						],
+					},
+				},
+				permissions: [],
+			};
+
+			module.init(opts);
+
+			//expect(module.hasAccess("api.epubs.choices.moo", { roles: ["role"] })).to.be.true;
+			expect(module.hasAccess("api.epubs.choices.get", { roles: ["role"] })).to.be.false;
 		});
 
 		it("should prefer negated wildcard permissions over wildcard checks", function() {
@@ -456,6 +558,62 @@ describe("Pylor", function() {
 
 			expect(module.hasAccess("zilch.*", { roles: ["role"] })).to.be.false;
 			expect(module.hasAccess("zilch.hi", { roles: ["role"] })).to.be.false;
+		});
+
+		it("should prefer negated wildcard permissions over wildcard checks across roles", function() {
+			var opts = {
+				roles: {
+					"role": {
+						permissions: [
+							"!zilch.*",
+						],
+					},
+					"role2": {
+						permissions: [
+							"zilch.*",
+						],
+					},
+				},
+				permissions: [],
+			};
+
+			module.init(opts);
+
+			expect(module.hasAccess("zilch.*", { roles: ["role", "role2"] })).to.be.false;
+			expect(module.hasAccess("zilch.*", { roles: ["role2", "role"] })).to.be.false;
+			expect(module.hasAccess("zilch.hi", { roles: ["role", "role2"] })).to.be.false;
+			expect(module.hasAccess("zilch.hi", { roles: ["role2", "role"] })).to.be.false;
+		});
+
+		it("should prefer superplus permissions over everything except hard negation", function() {
+			var opts = {
+				roles: {
+					"role": {
+						permissions: [
+							"!zilch.*",
+							"!!zilch.foo",
+						],
+					},
+					"role2": {
+						permissions: [
+							"+zilch.moo",
+							"+zilch.foo",
+						],
+					},
+				},
+				permissions: [],
+			};
+
+			module.init(opts);
+
+			expect(module.hasAccess("zilch.*", { roles: ["role", "role2"] })).to.be.false;
+			expect(module.hasAccess("zilch.*", { roles: ["role2", "role"] })).to.be.false;
+			expect(module.hasAccess("zilch.hi", { roles: ["role", "role2"] })).to.be.false;
+			expect(module.hasAccess("zilch.hi", { roles: ["role2", "role"] })).to.be.false;
+			expect(module.hasAccess("zilch.moo", { roles: ["role", "role2"] })).to.be.true;
+			expect(module.hasAccess("zilch.moo", { roles: ["role2", "role"] })).to.be.true;
+			expect(module.hasAccess("zilch.foo", { roles: ["role", "role2"] })).to.be.false;
+			expect(module.hasAccess("zilch.foo", { roles: ["role2", "role"] })).to.be.false;
 		});
 
 		it("should allow pattern matching", function() {
@@ -815,6 +973,7 @@ describe("Pylor", function() {
 					json: function() {
 						return res;
 					},
+					statusCode: 200,
 				};
 
 				sinon.spy(res, "status");
